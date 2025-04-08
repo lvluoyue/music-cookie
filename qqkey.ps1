@@ -1,7 +1,6 @@
-# ¸Ã½Å±¾Ê¹ÓÃGB2312±àÂë
-$OutputEncoding = [System.Text.Encoding]::UTF8
+
 Add-Type -AssemblyName Microsoft.PowerShell.Commands.Utility
-# ¹Ø±Õcurl½ø¶ÈÏÔÊ¾
+# å…³é—­curlè¿›åº¦æ˜¾ç¤º
 $ProgressPreference = 'SilentlyContinue'
 
 function Invoke-Request {
@@ -21,9 +20,9 @@ function Invoke-Request {
             -ErrorAction Stop
     } catch {
         if($_.Exception -match "The operation has timed out") {
-            Write-Host "ÇëÇó³¬Ê±£¬Çë¼ì²éÍøÂçÁ¬½Ó" -ForegroundColor Red
+            Write-Host "è¯·æ±‚è¶…æ—¶ï¼Œè¯·æ£€æŸ¥ç½‘ç»œè¿æ¥" -ForegroundColor Red
         }else {
-            Write-Host "ÇëÇóÊ§°Ü£¬´íÎóĞÅÏ¢:" -ForegroundColor Red
+            Write-Host "è¯·æ±‚å¤±è´¥ï¼Œé”™è¯¯ä¿¡æ¯:" -ForegroundColor Red
             Write-Host $_.Exception.Message
         }
         Exit ;
@@ -43,69 +42,69 @@ function Get-CookieValue {
 }
 
 try {
-    Write-Host "½Å±¾Æô¶¯£¬ÕıÔÚµÇÂ¼..." -ForegroundColor Green
+    Write-Host "è„šæœ¬å¯åŠ¨ï¼Œæ­£åœ¨ç™»å½•..." -ForegroundColor Green
 
-    # Ä¿±êURLµØÖ·£¬Ô­Ê¼¸ñÊ½
+    # ç›®æ ‡URLåœ°å€ï¼ŒåŸå§‹æ ¼å¼
     $targetUrl = "https://xui.ptlogin2.qq.com/cgi-bin/xlogin?appid=716027609&daid=383&style=33&login_text=%E7%99%BB%E5%BD%95&hide_title_bar=1&hide_border=1&target=self&s_url=https%3A%2F%2Fgraph.qq.com%2Foauth2.0%2Flogin_jump&pt_3rd_aid=100497308&pt_feedback_link=https%3A%2F%2Fsupport.qq.com%2Fproducts%2F77942%3FcustomInfo%3D.appid100497308&theme=2&verify_theme="
     $refererHeaders = @{"Referer" = $targetUrl}
 
-    # ·¢ËÍGETÇëÇó²¢×Ô¶¯´¦ÀíÏìÓ¦
+    # å‘é€GETè¯·æ±‚å¹¶è‡ªåŠ¨å¤„ç†å“åº”
     $response = Invoke-Request -Uri $targetUrl
 
-    # »ñÈ¡Ä¿±êCookie
+    # è·å–ç›®æ ‡Cookie
     $pt_local_token = Get-CookieValue -Cookies $response.Headers['Set-Cookie'] -CookieName "pt_local_token"
     if (-not $pt_local_token) {
-        Write-Host "Î´ÄÜ³É¹¦»ñÈ¡ pt_local_token CookieÖµ" -ForegroundColor Red
+        Write-Host "æœªèƒ½æˆåŠŸè·å– pt_local_token Cookieå€¼" -ForegroundColor Red
         Exit ;
     }
 
-    Write-Host "³É¹¦»ñÈ¡ pt_local_token: $pt_local_token" -ForegroundColor Green
+    Write-Host "æˆåŠŸè·å– pt_local_token: $pt_local_token" -ForegroundColor Green
 
     $getUinsUrl = "https://localhost.ptlogin2.qq.com:4301/pt_get_uins?callback=ptui_getuins_CB&r=0.9038523633869937&pt_local_tk=$pt_local_token"
 
 
-    # ´´½¨WebSession¶ÔÏó²¢Ìí¼ÓCookie
+    # åˆ›å»ºWebSessionå¯¹è±¡å¹¶æ·»åŠ Cookie
     $webSession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
     $cookieObj = New-Object System.Net.Cookie("pt_local_token", $pt_local_token, "/", "localhost.ptlogin2.qq.com")
     $webSession.Cookies.Add($cookieObj)
 
     $newResponse = Invoke-Request -Uri $getUinsUrl -Headers $refererHeaders -WebSession $webSession
 
-    # ½âÎöÏìÓ¦ÄÚÈİÖĞµÄ var_sso_uin_list
+    # è§£æå“åº”å†…å®¹ä¸­çš„ var_sso_uin_list
     $responseContent = $newResponse.Content
     if (-not ($responseContent -match 'var var_sso_uin_list=(\[.*?\]);')) {
-        Write-Host "Î´ÄÜ·¢ÏÖÓĞĞ§µÄÓÃ»§ÁĞ±í¡£" -ForegroundColor Red
+        Write-Host "æœªèƒ½å‘ç°æœ‰æ•ˆçš„ç”¨æˆ·åˆ—è¡¨ã€‚" -ForegroundColor Red
         Exit ;
     }
 
     $userList = ConvertFrom-Json $matches[1]
 
-    # ÏÔÊ¾ÓÃ»§ÁĞ±í²¢ÈÃÓÃ»§Ñ¡Ôñ
-    Write-Host "ÇëÑ¡ÔñÒ»¸öÓÃ»§:" -ForegroundColor Cyan
+    # æ˜¾ç¤ºç”¨æˆ·åˆ—è¡¨å¹¶è®©ç”¨æˆ·é€‰æ‹©
+    Write-Host "è¯·é€‰æ‹©ä¸€ä¸ªç”¨æˆ·:" -ForegroundColor Cyan
     for ($i = 0; $i -lt $userList.Length; $i++) {
-        Write-Host "[$i] ÕËºÅ: $($userList[$i].uin)"
+        Write-Host "[$i] è´¦å·: $($userList[$i].uin)"
     }
-    $userChoice = Read-Host "ÇëÊäÈëÓÃ»§±àºÅ"
+    $userChoice = Read-Host "è¯·è¾“å…¥ç”¨æˆ·ç¼–å·"
 
     if (-not ($userChoice -match '^\d+$') -or [int]$userChoice -lt 0 -or [int]$userChoice -ge $userList.Length) {
-        Write-Host "ÎŞĞ§µÄÑ¡Ôñ¡£" -ForegroundColor Red
+        Write-Host "æ— æ•ˆçš„é€‰æ‹©ã€‚" -ForegroundColor Red
         Exit ;
     }
 
     $selectedUser = $userList[$userChoice]
 
-    # ¹¹ÔìĞÂµÄÇëÇó
+    # æ„é€ æ–°çš„è¯·æ±‚
     $newRequestUrl = "https://localhost.ptlogin2.qq.com:4301/pt_get_st?clientuin=$($selectedUser.uin)&r=0.5287717305315094&pt_local_tk=$pt_local_token&callback=__jp0"
 
     $newRequestResponse = Invoke-Request -Uri $newRequestUrl -Headers $refererHeaders -WebSession $webSession
 
-    # »ñÈ¡Cookie
+    # è·å–Cookie
     $newCookieCollection = $newRequestResponse.Headers['Set-Cookie']
     $clientuin = Get-CookieValue -Cookies $newCookieCollection -CookieName "clientuin"
     $clientkey = Get-CookieValue -Cookies $newCookieCollection -CookieName "clientkey"
 
     if (-not $clientuin -or -not $clientkey) {
-        Write-Host "Î´ÄÜ·¢ÏÖÓĞĞ§µÄclientuinºÍclientkey" -ForegroundColor Red
+        Write-Host "æœªèƒ½å‘ç°æœ‰æ•ˆçš„clientuinå’Œclientkey" -ForegroundColor Red
         Exit ;
     }
 
@@ -113,10 +112,10 @@ try {
     Write-Host "clientkey: $clientkey" -ForegroundColor Green
 }
 finally {
-    # »Ö¸´Ä¬ÈÏµÄ½ø¶ÈÏÔÊ¾
+    # æ¢å¤é»˜è®¤çš„è¿›åº¦æ˜¾ç¤º
     $ProgressPreference = 'Continue'
 
-    Write-Host "°´ÈÎÒâ¼üÍË³ö³ÌĞò¡£" 
+    Write-Host "æŒ‰ä»»æ„é”®é€€å‡ºç¨‹åºã€‚" 
     [Console]::Read() | Out-Null ;
     Exit ;
 }
